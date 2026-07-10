@@ -1,0 +1,91 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      String   @default("member")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  rooms       Room[]
+  members     RoomMember[]
+  files       File[]
+  messages    Message[]
+  notifications Notification[]
+}
+
+model Room {
+  id          String   @id @default(cuid())
+  roomId      String   @unique
+  name        String
+  projectType String?
+  description String?
+  maxMembers  Int?
+  createdBy   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  creator User           @relation(fields: [createdBy], references: [id])
+  members RoomMember[]
+  files   File[]
+  messages Message[]
+}
+
+model RoomMember {
+  id     String @id @default(cuid())
+  roomId String
+  userId String
+  role   String @default("member")
+  status String @default("pending")
+
+  room Room @relation(fields: [roomId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([roomId, userId])
+}
+
+model File {
+  id         String   @id @default(cuid())
+  roomId     String
+  fileName   String
+  fileType   String
+  fileUrl    String
+  fileSize   Int?
+  uploadedBy String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  room   Room @relation(fields: [roomId], references: [id])
+  uploader User @relation(fields: [uploadedBy], references: [id])
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  roomId    String
+  senderId  String
+  message   String
+  createdAt DateTime @default(now())
+
+  room   Room @relation(fields: [roomId], references: [id])
+  sender User @relation(fields: [senderId], references: [id])
+}
+
+model Notification {
+  id      String   @id @default(cuid())
+  userId  String
+  title   String
+  message String
+  isRead  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}

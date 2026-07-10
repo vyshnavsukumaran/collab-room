@@ -1,0 +1,26 @@
+▲ Next.js 16.2.10 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://10.57.16.95:3000
+✓ Ready in 194ms
+
+ GET / 200 in 198ms (next.js: 89ms, application-code: 109ms)
+ GET / 200 in 52ms (next.js: 4ms, application-code: 48ms)
+ GET /sign-up 200 in 297ms (next.js: 287ms, application-code: 10ms)
+ GET /sign-up 200 in 22ms (next.js: 3ms, application-code: 19ms)
+ GET / 200 in 21ms (next.js: 10ms, application-code: 11ms)
+ GET /sign-up 200 in 24ms (next.js: 5ms, application-code: 19ms)
+ GET /home 200 in 464ms (next.js: 456ms, application-code: 8ms)
+ GET /create-room 200 in 186ms (next.js: 179ms, application-code: 7ms)
+ GET /room/5G-2G12-24XI 200 in 519ms (next.js: 508ms, application-code: 11ms)
+✓ Compiled in 71ms
+ GET /home 200 in 25ms (next.js: 6ms, application-code: 19ms)
+ GET /room/5G-2G12-24XI 200 in 26ms (next.js: 10ms, application-code: 15ms)
+ GET /home 200 in 21ms (next.js: 4ms, application-code: 17ms)
+ GET /join-room 200 in 184ms (next.js: 177ms, application-code: 7ms)
+ GET / 200 in 65ms (next.js: 6ms, application-code: 60ms)
+ GET /apple-touch-icon-precomposed.png 404 in 190ms (next.js: 175ms, application-code: 15ms)
+ GET /apple-touch-icon.png 404 in 17ms (next.js: 2ms, application-code: 15ms)
+ GET / 200 in 36ms (next.js: 3ms, application-code: 32ms)
+ GET /room/5G-2G12-24XI 200 in 38ms (next.js: 14ms, application-code: 24ms)
+  Reload env: .env
+ GET /room/5G-2G12-24XI 200 in 95ms (next.js: 68ms, application-code: 27ms)
