@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { io, Socket } from "socket.io-client";
 
-const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") || "https://collabroom-production.up.railway.app";
+const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") || "http://localhost:4000";
 
 export function useSocket(roomId: string | null, onMessage?: (data: { user: { id: string; name: string }; message: string; timestamp: string }) => void) {
   const socketRef = useRef<Socket | null>(null);

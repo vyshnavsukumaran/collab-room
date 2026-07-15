@@ -42,5 +42,5 @@ setupSocketHandlers(io);
 
 const port = process.env.PORT || 4000;
 httpServer.listen(port, () => {
-  console.log(`CollabRoom backend running on port ${PORT}`);
+  console.log(`CollabRoom backend running on port ${port}`);
 });
