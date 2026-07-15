@@ -18,10 +18,15 @@ async function request<T>(
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${API_BASE}${endpoint}`, {
-    ...options,
-    headers,
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${endpoint}`, {
+      ...options,
+      headers,
+    });
+  } catch {
+    throw new Error("Cannot connect to server. Check that the backend is running.");
+  }
 
   if (!res.ok) {
     const error = await res.json().catch(() => ({ error: "Request failed" }));
