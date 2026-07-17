@@ -266,7 +266,7 @@ export default function RoomPage() {
                         </p>
                       </div>
                       <div className="flex items-center gap-1">
-                        <Button variant="ghost" size="icon-xs">
+                        <Button variant="ghost" size="icon-xs" onClick={() => window.open(`${process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") || "http://localhost:4000"}${file.fileUrl}`, "_blank")}>
                           <Download className="size-4" />
                         </Button>
                         {isAdmin && (

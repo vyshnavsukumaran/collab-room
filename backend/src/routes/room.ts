@@ -15,8 +15,8 @@ function generateRoomId(): string {
 
 router.post("/", authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
-    const { name, projectType, description, maxMembers } = req.body;
-    const roomId = generateRoomId();
+    const { roomId: providedRoomId, name, projectType, description, maxMembers } = req.body;
+    const roomId = providedRoomId || generateRoomId();
 
     const room = await prisma.room.create({
       data: {

@@ -41,6 +41,7 @@ export default function CreateRoomPage() {
     setLoading(true);
     try {
       const room = await api.post<Room>("/rooms", {
+        roomId,
         name: roomName,
         description,
         projectType,
