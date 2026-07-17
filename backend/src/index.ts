@@ -14,16 +14,28 @@ import { setupSocketHandlers } from "./services/socket";
 
 const app = express();
 const httpServer = createServer(app);
-const io = new Server(httpServer, {
-  cors: {
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
-    methods: ["GET", "POST"],
+const allowedOrigins = (process.env.FRONTEND_URL || "http://localhost:3000")
+  .split(",")
+  .map((s) => s.trim());
+
+const corsOptions: cors.CorsOptions = {
+  origin(origin, cb) {
+    if (!origin || allowedOrigins.includes("*") || allowedOrigins.includes(origin)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Not allowed by CORS"));
+    }
   },
+  credentials: true,
+};
+
+const io = new Server(httpServer, {
+  cors: corsOptions,
 });
 
 export const prisma = new PrismaClient();
 
-app.use(cors({ origin: process.env.FRONTEND_URL || "http://localhost:3000" }));
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use("/uploads", express.static("uploads"));
 
