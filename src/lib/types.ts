@@ -12,6 +12,9 @@ export interface Room {
   description: string | null;
   maxMembers: number | null;
   createdBy: string;
+  githubOwner: string | null;
+  githubRepo: string | null;
+  githubBranch: string | null;
   createdAt: string;
   members: RoomMember[];
   _count?: { files: number; messages: number };
@@ -58,6 +61,51 @@ export interface Notification {
   userId: string;
   title: string;
   message: string;
+  type: string;
+  roomId: string | null;
+  metadata: string | null;
   isRead: boolean;
   createdAt: string;
+}
+
+export interface GitHubStatus {
+  connected: boolean;
+  username: string | null;
+  avatarUrl: string | null;
+}
+
+export interface GitHubRepo {
+  id: number;
+  name: string;
+  fullName: string;
+  description: string | null;
+  private: boolean;
+  htmlUrl: string;
+  defaultBranch: string;
+  owner: string;
+}
+
+export interface GitHubContent {
+  name: string;
+  path: string;
+  type: "file" | "dir";
+  size: number;
+  sha: string;
+  downloadUrl: string | null;
+}
+
+export interface GitHubFile {
+  name: string;
+  path: string;
+  sha: string;
+  size: number;
+  content: string;
+  htmlUrl: string;
+}
+
+export interface GitHubCommitResult {
+  success: boolean;
+  commitSha: string;
+  commitUrl: string;
+  file: string;
 }

@@ -43,6 +43,8 @@ export const api = {
   patch: <T>(endpoint: string, body?: unknown) =>
     request<T>(endpoint, { method: "PATCH", body: body ? JSON.stringify(body) : undefined }),
   delete: <T>(endpoint: string) => request<T>(endpoint, { method: "DELETE" }),
+  put: <T>(endpoint: string, body?: unknown) =>
+    request<T>(endpoint, { method: "PUT", body: body ? JSON.stringify(body) : undefined }),
   upload: <T>(endpoint: string, formData: FormData) =>
     request<T>(endpoint, { method: "POST", body: formData }),
 };

@@ -10,6 +10,7 @@ import memberRoutes from "./routes/member";
 import fileRoutes from "./routes/file";
 import chatRoutes from "./routes/chat";
 import notificationRoutes from "./routes/notification";
+import githubRoutes from "./routes/github";
 import { setupSocketHandlers } from "./services/socket";
 
 const app = express();
@@ -36,7 +37,14 @@ const io = new Server(httpServer, {
 export const prisma = new PrismaClient();
 
 app.use(cors(corsOptions));
-app.use(express.json());
+
+app.use(
+  express.json({
+    verify: (req, _res, buf) => {
+      (req as any).rawBody = buf.toString();
+    },
+  })
+);
 app.use("/uploads", express.static("uploads"));
 
 app.use("/api/auth", authRoutes);
@@ -45,6 +53,7 @@ app.use("/api/members", memberRoutes);
 app.use("/api/files", fileRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/github", githubRoutes);
 
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });

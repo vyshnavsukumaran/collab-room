@@ -85,6 +85,37 @@ router.get("/:roomId", authenticateToken, async (req: AuthRequest, res: Response
   }
 });
 
+router.patch("/:roomId", authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const { githubOwner, githubRepo, githubBranch } = req.body;
+    const room = await prisma.room.findUnique({ where: { roomId: req.params.roomId as string } });
+    if (!room) {
+      return res.status(404).json({ error: "Room not found" });
+    }
+
+    const member = await prisma.roomMember.findUnique({
+      where: { roomId_userId: { roomId: room.id, userId: req.userId! } },
+    });
+    if (!member || member.role !== "admin") {
+      return res.status(403).json({ error: "Only admins can modify room settings" });
+    }
+
+    const data: any = {};
+    if (githubOwner !== undefined) data.githubOwner = githubOwner;
+    if (githubRepo !== undefined) data.githubRepo = githubRepo;
+    if (githubBranch !== undefined) data.githubBranch = githubBranch;
+
+    const updated = await prisma.room.update({
+      where: { id: room.id },
+      data,
+    });
+
+    res.json(updated);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to update room" });
+  }
+});
+
 router.delete("/:roomId", authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const room = await prisma.room.findUnique({ where: { roomId: req.params.roomId as string } });
