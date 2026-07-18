@@ -13,7 +13,7 @@ import {
   ArrowLeft, Send, Paperclip, Smile, FileCode, FileText,
   ChevronRight, Folder, GitBranch, Link2,
   Save, GitCommitHorizontal, RefreshCw, AlertCircle,
-  ExternalLink, X,
+  ExternalLink, X, Check,
 } from "lucide-react";
 import Link from "next/link";
 import { api } from "@/lib/api";
@@ -756,10 +756,50 @@ export default function RoomPage() {
                     <div className="flex-1">
                       <p className="text-sm font-medium">{member.user.name}</p>
                       <p className="text-xs text-muted-foreground capitalize">
-                        {member.status === "approved" ? "Active" : "Pending"}
+                        {member.status === "approved" ? "Active" : "Pending approval"}
                       </p>
                     </div>
                     <Badge variant="secondary" className="capitalize">{member.role}</Badge>
+                    {isAdmin && member.status === "pending" && (
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                          onClick={async () => {
+                            try {
+                              await api.patch(`/members/${member.id}/approve`);
+                              setMembers((prev) =>
+                                prev.map((m) =>
+                                  m.id === member.id ? { ...m, status: "approved" } : m
+                                )
+                              );
+                              toast.success(`${member.user.name} approved`);
+                            } catch {
+                              toast.error("Failed to approve member");
+                            }
+                          }}
+                        >
+                          <Check className="size-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={async () => {
+                            try {
+                              await api.delete(`/members/${member.id}`);
+                              setMembers((prev) => prev.filter((m) => m.id !== member.id));
+                              toast.success(`${member.user.name} rejected`);
+                            } catch {
+                              toast.error("Failed to reject member");
+                            }
+                          }}
+                        >
+                          <X className="size-4" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </CardContent>
