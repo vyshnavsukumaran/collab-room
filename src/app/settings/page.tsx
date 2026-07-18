@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -14,7 +14,7 @@ import type { GitHubStatus } from "@/lib/types";
 import { toast } from "sonner";
 import { useSearchParams } from "next/navigation";
 
-export default function SettingsPage() {
+function SettingsContent() {
   const { user, logout } = useAuth();
   const searchParams = useSearchParams();
   const [name, setName] = useState(user?.name || "");
@@ -206,5 +206,17 @@ export default function SettingsPage() {
         </Card>
       </main>
     </div>
+  );
+}
+
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-muted/30 flex items-center justify-center">
+        <div className="size-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    }>
+      <SettingsContent />
+    </Suspense>
   );
 }
