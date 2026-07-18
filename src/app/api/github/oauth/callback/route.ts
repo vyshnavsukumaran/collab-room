@@ -1,15 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getBackendApiUrl } from "@/lib/backend-url";
 
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
   const state = request.nextUrl.searchParams.get("state");
-  const backendUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api").replace("/api", "");
 
   const res = await fetch(
-    `${backendUrl}/api/github/oauth/callback?code=${code}&state=${state}`,
+    `${getBackendApiUrl()}/github/oauth/callback?code=${encodeURIComponent(code || "")}&state=${encodeURIComponent(state || "")}`,
     { redirect: "manual" }
   );
 
-  const location = res.headers.get("location") || "http://localhost:3000/settings";
-  return NextResponse.redirect(location);
+  const location = res.headers.get("location");
+  const redirectUrl = new URL("/settings?github=error&message=callback_failed", request.nextUrl.origin);
+
+  if (location) {
+    const backendRedirect = new URL(location, request.nextUrl.origin);
+    redirectUrl.pathname = backendRedirect.pathname;
+    redirectUrl.search = backendRedirect.search;
+    redirectUrl.hash = backendRedirect.hash;
+  }
+
+  return NextResponse.redirect(redirectUrl);
 }

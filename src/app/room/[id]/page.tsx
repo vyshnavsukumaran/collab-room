@@ -114,7 +114,7 @@ export default function RoomPage() {
     [roomId, user?.id]
   );
 
-  const { sendMessage: sendSocketMessage } = useSocket(roomId, handleIncomingMessage);
+  useSocket(roomId, handleIncomingMessage);
 
   useEffect(() => {
     Promise.all([
@@ -165,11 +165,6 @@ export default function RoomPage() {
     try {
       const msg = await api.post<Message>(`/chat/${roomId}`, { message });
       setMessages((prev) => [...prev, msg]);
-      sendSocketMessage({
-        roomId,
-        message: msg.message,
-        user: { id: msg.sender.id, name: msg.sender.name },
-      });
       setMessage("");
     } catch {
       toast.error("Failed to send message");

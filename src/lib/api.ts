@@ -1,4 +1,4 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+const API_BASE = "/api/backend";
 
 async function request<T>(
   endpoint: string,
@@ -25,7 +25,7 @@ async function request<T>(
       headers,
     });
   } catch {
-    throw new Error("Cannot connect to server. Check that the backend is running.");
+    throw new Error("Cannot connect to the application server. Please try again.");
   }
 
   if (!res.ok) {

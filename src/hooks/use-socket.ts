@@ -1,35 +1,54 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { io, Socket } from "socket.io-client";
+import { api } from "@/lib/api";
+import type { Message } from "@/lib/types";
 
-const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") || "http://localhost:4000";
+type IncomingMessage = {
+  user: { id: string; name: string };
+  message: string;
+  timestamp: string;
+};
 
-export function useSocket(roomId: string | null, onMessage?: (data: { user: { id: string; name: string }; message: string; timestamp: string }) => void) {
-  const socketRef = useRef<Socket | null>(null);
+export function useSocket(roomId: string | null, onMessage?: (data: IncomingMessage) => void) {
+  const seenMessageIds = useRef<Set<string> | null>(null);
 
   useEffect(() => {
     if (!roomId) return;
 
-    const socket = io(SOCKET_URL);
-    socketRef.current = socket;
+    let active = true;
+    let timeout: ReturnType<typeof setTimeout> | undefined;
 
-    socket.emit("join-room", roomId);
+    async function pollMessages() {
+      try {
+        const messages = await api.get<Message[]>(`/chat/${roomId}`);
 
-    if (onMessage) {
-      socket.on("chat:message", onMessage);
+        if (seenMessageIds.current === null) {
+          seenMessageIds.current = new Set(messages.map((message) => message.id));
+        } else {
+          for (const message of messages) {
+            if (!seenMessageIds.current.has(message.id)) {
+              seenMessageIds.current.add(message.id);
+              onMessage?.({
+                user: { id: message.sender.id, name: message.sender.name },
+                message: message.message,
+                timestamp: message.createdAt,
+              });
+            }
+          }
+        }
+      } catch {
+      } finally {
+        if (active) timeout = setTimeout(pollMessages, 3000);
+      }
     }
 
+    pollMessages();
+
     return () => {
-      socket.emit("leave-room", roomId);
-      socket.disconnect();
-      socketRef.current = null;
+      active = false;
+      seenMessageIds.current = null;
+      if (timeout) clearTimeout(timeout);
     };
   }, [roomId, onMessage]);
-
-  const sendMessage = (data: { roomId: string; message: string; user: { id: string; name: string } }) => {
-    socketRef.current?.emit("chat:message", data);
-  };
-
-  return { sendMessage };
 }
