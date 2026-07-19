@@ -106,7 +106,7 @@ export default function CreateRoomPage() {
                 <label htmlFor="description" className="text-sm font-medium">Description</label>
                 <textarea
                   id="description"
-                  className="flex min-h-[80px] w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  className="flex min-h-[80px] w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-[border,box-shadow]"
                   placeholder="What is this project about?"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
@@ -114,41 +114,41 @@ export default function CreateRoomPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label htmlFor="projectType" className="text-sm font-medium">Project Type</label>
-                  <select
-                    id="projectType"
-                    className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-1 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                    value={projectType}
-                    onChange={(e) => setProjectType(e.target.value)}
-                    required
-                  >
-                    <option value="">Select type</option>
-                    <option value="Web App">Web App</option>
-                    <option value="Mobile App">Mobile App</option>
-                    <option value="Backend">Backend</option>
-                    <option value="Design">Design</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
+                  <div className="space-y-2">
+                    <label htmlFor="projectType" className="text-sm font-medium">Project Type</label>
+                    <select
+                      id="projectType"
+                      className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-1 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-[border,box-shadow]"
+                      value={projectType}
+                      onChange={(e) => setProjectType(e.target.value)}
+                      required
+                    >
+                      <option value="">Select type</option>
+                      <option value="Web App">Web App</option>
+                      <option value="Mobile App">Mobile App</option>
+                      <option value="Backend">Backend</option>
+                      <option value="Design">Design</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
 
-                <div className="space-y-2">
-                  <label htmlFor="maxMembers" className="text-sm font-medium">Max Members</label>
-                  <select
-                    id="maxMembers"
-                    className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-1 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                    value={maxMembers}
-                    onChange={(e) => setMaxMembers(e.target.value)}
-                  >
-                    <option value="">Select</option>
-                    <option value="2">2 members</option>
-                    <option value="3">3 members</option>
-                    <option value="4">4 members</option>
-                    <option value="5">5 members</option>
-                    <option value="10">10 members</option>
-                    <option value="20">20 members</option>
-                  </select>
-                </div>
+                  <div className="space-y-2">
+                    <label htmlFor="maxMembers" className="text-sm font-medium">Max Members</label>
+                    <select
+                      id="maxMembers"
+                      className="flex h-9 w-full rounded-lg border border-input bg-background px-3 py-1 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-[border,box-shadow]"
+                      value={maxMembers}
+                      onChange={(e) => setMaxMembers(e.target.value)}
+                    >
+                      <option value="">Select</option>
+                      <option value="2">2 members</option>
+                      <option value="3">3 members</option>
+                      <option value="4">4 members</option>
+                      <option value="5">5 members</option>
+                      <option value="10">10 members</option>
+                      <option value="20">20 members</option>
+                    </select>
+                  </div>
               </div>
 
               <Button type="submit" className="w-full" disabled={loading}>

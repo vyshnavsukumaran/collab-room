@@ -117,19 +117,27 @@ export default function RoomPage() {
   const { sendMessage: sendSocketMessage } = useSocket(roomId, handleIncomingMessage);
 
   useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
     Promise.all([
       api.get<Room>(`/rooms/${roomId}`),
       api.get<Message[]>(`/chat/${roomId}`),
       api.get<Notification[]>(`/notifications`),
     ])
       .then(([roomData, messagesData, notifsData]) => {
+        if (cancelled) return;
         setRoom(roomData);
         setMembers(roomData.members || []);
         setMessages(messagesData);
         setNotifications(notifsData.filter((n) => n.roomId === roomData.id));
       })
-      .catch(() => toast.error("Failed to load room data"))
-      .finally(() => setLoading(false));
+      .catch(() => {
+        if (!cancelled) toast.error("Failed to load room data");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
   }, [roomId]);
 
   useEffect(() => {
@@ -138,23 +146,25 @@ export default function RoomPage() {
 
   // Load repos when entering Files tab if repo is connected
   useEffect(() => {
-    if (isRepoConnected) {
-      api.get<GitHubStatus>("/github/status").then((s) => {
-        setGitHubConnected(s.connected);
-        if (s.connected && room?.githubOwner && room?.githubRepo) {
-          setSelectedRepo({
-            id: 0,
-            name: room.githubRepo!,
-            fullName: `${room.githubOwner}/${room.githubRepo}`,
-            description: null,
-            private: false,
-            htmlUrl: `https://github.com/${room.githubOwner}/${room.githubRepo}`,
-            defaultBranch: room.githubBranch || "main",
-            owner: room.githubOwner!,
-          });
-        }
-      }).catch(() => {});
-    }
+    if (!isRepoConnected || !room) return;
+    let cancelled = false;
+    api.get<GitHubStatus>("/github/status").then((s) => {
+      if (cancelled) return;
+      setGitHubConnected(s.connected);
+      if (s.connected && room.githubOwner && room.githubRepo) {
+        setSelectedRepo({
+          id: 0,
+          name: room.githubRepo,
+          fullName: `${room.githubOwner}/${room.githubRepo}`,
+          description: null,
+          private: false,
+          htmlUrl: `https://github.com/${room.githubOwner}/${room.githubRepo}`,
+          defaultBranch: room.githubBranch || "main",
+          owner: room.githubOwner,
+        });
+      }
+    }).catch(() => {});
+    return () => { cancelled = true; };
   }, [room?.githubOwner, room?.githubRepo, isRepoConnected]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -732,7 +742,7 @@ export default function RoomPage() {
           <TabsContent value="members" className="mt-0">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold">Team Members</h2>
-              {isAdmin && <Button size="sm">Add Member</Button>}
+              {isAdmin && <Button size="sm" onClick={() => toast.info("Use the room's Room ID to invite members")}>Add Member</Button>}
             </div>
             <Card>
               <CardContent className="p-0">
@@ -840,7 +850,7 @@ export default function RoomPage() {
               </CardContent>
               <div className="border-t p-3">
                 <form onSubmit={handleSendMessage} className="flex items-center gap-2">
-                  <Button type="button" variant="ghost" size="icon">
+                  <Button type="button" variant="ghost" size="icon" onClick={() => toast.info("File attachment coming soon")}>
                     <Paperclip className="size-4" />
                   </Button>
                   <Input
@@ -849,7 +859,7 @@ export default function RoomPage() {
                     onChange={(e) => setMessage(e.target.value)}
                     className="flex-1"
                   />
-                  <Button type="button" variant="ghost" size="icon">
+                  <Button type="button" variant="ghost" size="icon" onClick={() => toast.info("Emoji picker coming soon")}>
                     <Smile className="size-4" />
                   </Button>
                   <Button type="submit" size="icon" disabled={!message.trim() || sendingMessage}>
@@ -870,7 +880,10 @@ export default function RoomPage() {
               <CardContent className="p-0">
                 {notifications.length > 0 ? (
                   notifications.map((notif) => {
-                    const metadata = notif.metadata ? JSON.parse(notif.metadata) : null;
+                    let metadata = null;
+                    try {
+                      metadata = notif.metadata ? JSON.parse(notif.metadata) : null;
+                    } catch {}
                     const isExternal = metadata?.external;
                     return (
                       <div

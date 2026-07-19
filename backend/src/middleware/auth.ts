@@ -14,7 +14,11 @@ export function authenticateToken(req: AuthRequest, res: Response, next: NextFun
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "secret") as { userId: string };
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      return res.status(500).json({ error: "JWT_SECRET not configured on server" });
+    }
+    const decoded = jwt.verify(token, jwtSecret) as { userId: string };
     req.userId = decoded.userId;
     next();
   } catch {

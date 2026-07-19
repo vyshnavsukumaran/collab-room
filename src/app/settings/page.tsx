@@ -21,6 +21,11 @@ function SettingsContent() {
   const [email, setEmail] = useState(user?.email || "");
   const [github, setGitHub] = useState<GitHubStatus | null>(null);
   const [loadingGitHub, setLoadingGitHub] = useState(true);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [updatingPassword, setUpdatingPassword] = useState(false);
 
   useEffect(() => {
     const githubParam = searchParams.get("github");
@@ -86,7 +91,7 @@ function SettingsContent() {
                   {user?.name?.[0] || "U"}
                 </AvatarFallback>
               </Avatar>
-              <Button variant="outline" size="sm">Change Avatar</Button>
+              <Button variant="outline" size="sm" onClick={() => toast.info("Avatar upload coming soon")}>Change Avatar</Button>
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Name</label>
@@ -96,7 +101,20 @@ function SettingsContent() {
               <label className="text-sm font-medium">Email</label>
               <Input value={email} onChange={(e) => setEmail(e.target.value)} type="email" />
             </div>
-            <Button>Save Changes</Button>
+            <Button onClick={async () => {
+              setSavingProfile(true);
+              try {
+                await api.patch("/auth/profile", { name, email });
+                toast.success("Profile updated");
+              } catch (err: unknown) {
+                const msg = err instanceof Error ? err.message : "Failed to update profile";
+                toast.error(msg);
+              } finally {
+                setSavingProfile(false);
+              }
+            }} disabled={savingProfile}>
+              {savingProfile ? "Saving..." : "Save Changes"}
+            </Button>
           </CardContent>
         </Card>
 
@@ -158,17 +176,41 @@ function SettingsContent() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Current Password</label>
-              <Input type="password" placeholder="Enter current password" />
+              <Input type="password" placeholder="Enter current password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">New Password</label>
-              <Input type="password" placeholder="Enter new password" />
+              <Input type="password" placeholder="Enter new password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Confirm New Password</label>
-              <Input type="password" placeholder="Confirm new password" />
+              <Input type="password" placeholder="Confirm new password" value={confirmNewPassword} onChange={(e) => setConfirmNewPassword(e.target.value)} />
             </div>
-            <Button>Update Password</Button>
+            <Button onClick={async () => {
+              if (newPassword !== confirmNewPassword) {
+                toast.error("Passwords do not match");
+                return;
+              }
+              if (newPassword.length < 6) {
+                toast.error("Password must be at least 6 characters");
+                return;
+              }
+              setUpdatingPassword(true);
+              try {
+                await api.patch("/auth/password", { currentPassword, newPassword });
+                toast.success("Password updated");
+                setCurrentPassword("");
+                setNewPassword("");
+                setConfirmNewPassword("");
+              } catch (err: unknown) {
+                const msg = err instanceof Error ? err.message : "Failed to update password";
+                toast.error(msg);
+              } finally {
+                setUpdatingPassword(false);
+              }
+            }} disabled={updatingPassword || !currentPassword || !newPassword || !confirmNewPassword}>
+              {updatingPassword ? "Updating..." : "Update Password"}
+            </Button>
           </CardContent>
         </Card>
 

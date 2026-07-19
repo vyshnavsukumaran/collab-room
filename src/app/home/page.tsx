@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -18,21 +17,32 @@ import {
 import { Plus, Bell, Settings, LogOut, Search, Users, FolderOpen } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { useRouter } from "next/navigation";
 import type { Room } from "@/lib/types";
 
 export default function HomePage() {
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user, isLoading: authLoading, logout } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      router.push("/sign-in");
+      return;
+    }
     api.get<Room[]>("/rooms")
       .then(setRooms)
-      .catch(() => {})
+      .catch((err) => {
+        if (err.message?.includes("401") || err.message?.includes("Authentication")) {
+          logout();
+          router.push("/sign-in");
+        }
+      })
       .finally(() => setLoading(false));
-  }, []);
+  }, [user, authLoading, router, logout]);
 
   const filteredRooms = rooms.filter((r) =>
     r.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -80,11 +90,9 @@ export default function HomePage() {
                   <div className="px-2 py-1.5 text-sm font-medium">{user?.name}</div>
                   <div className="px-2 pb-1.5 text-xs text-muted-foreground">{user?.email}</div>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem>
-                    <Link href="/settings" className="flex items-center gap-2 w-full cursor-pointer">
-                      <Settings className="size-4" />
-                      Settings
-                    </Link>
+                  <DropdownMenuItem onClick={() => router.push("/settings")}>
+                    <Settings className="size-4" />
+                    Settings
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem className="text-destructive" onClick={logout}>
@@ -176,39 +184,45 @@ export default function HomePage() {
         <div>
           <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Card className="hover:shadow-md transition-shadow cursor-pointer">
-              <CardContent className="flex items-center gap-3 p-4">
-                <div className="size-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                  <Plus className="size-5 text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium">Create Room</p>
-                  <p className="text-xs text-muted-foreground">Start a new workspace</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="hover:shadow-md transition-shadow cursor-pointer">
-              <CardContent className="flex items-center gap-3 p-4">
-                <div className="size-10 rounded-lg bg-green-100 flex items-center justify-center">
-                  <Users className="size-5 text-green-600" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium">Invite Members</p>
-                  <p className="text-xs text-muted-foreground">Add people to your room</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="hover:shadow-md transition-shadow cursor-pointer">
-              <CardContent className="flex items-center gap-3 p-4">
-                <div className="size-10 rounded-lg bg-purple-100 flex items-center justify-center">
-                  <FolderOpen className="size-5 text-purple-600" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium">Browse Files</p>
-                  <p className="text-xs text-muted-foreground">View shared resources</p>
-                </div>
-              </CardContent>
-            </Card>
+            <Link href="/create-room" className="block">
+              <Card className="hover:shadow-md transition-shadow cursor-pointer">
+                <CardContent className="flex items-center gap-3 p-4">
+                  <div className="size-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                    <Plus className="size-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Create Room</p>
+                    <p className="text-xs text-muted-foreground">Start a new workspace</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+            <Link href="/join-room" className="block">
+              <Card className="hover:shadow-md transition-shadow cursor-pointer">
+                <CardContent className="flex items-center gap-3 p-4">
+                  <div className="size-10 rounded-lg bg-green-100 flex items-center justify-center">
+                    <Users className="size-5 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Invite Members</p>
+                    <p className="text-xs text-muted-foreground">Add people to your room</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+            <Link href="/join-room" className="block">
+              <Card className="hover:shadow-md transition-shadow cursor-pointer">
+                <CardContent className="flex items-center gap-3 p-4">
+                  <div className="size-10 rounded-lg bg-purple-100 flex items-center justify-center">
+                    <FolderOpen className="size-5 text-purple-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Browse Files</p>
+                    <p className="text-xs text-muted-foreground">View shared resources</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
           </div>
         </div>
       </main>

@@ -1,5 +1,7 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
+const REQUEST_TIMEOUT = 15000;
+
 async function request<T>(
   endpoint: string,
   options: RequestInit = {}
@@ -18,14 +20,29 @@ async function request<T>(
     headers["Authorization"] = `Bearer ${token}`;
   }
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+
   let res: Response;
   try {
     res = await fetch(`${API_BASE}${endpoint}`, {
       ...options,
       headers,
+      signal: controller.signal,
     });
-  } catch {
+  } catch (err) {
+    clearTimeout(timeoutId);
+    if (err instanceof DOMException && err.name === "AbortError") {
+      throw new Error("Request timed out");
+    }
     throw new Error("Cannot connect to server. Check that the backend is running.");
+  }
+  clearTimeout(timeoutId);
+
+  if (res.status === 401 && typeof window !== "undefined") {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    window.location.href = "/sign-in";
   }
 
   if (!res.ok) {

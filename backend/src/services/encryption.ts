@@ -5,8 +5,15 @@ const IV_LENGTH = 16;
 const TAG_LENGTH = 16;
 
 function getKey(): Buffer {
-  const key = process.env.GITHUB_ENCRYPTION_KEY || "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4";
-  return crypto.scryptSync(key, "collabroom-salt", 32);
+  const key = process.env.GITHUB_ENCRYPTION_KEY;
+  if (!key) {
+    throw new Error("GITHUB_ENCRYPTION_KEY environment variable is required");
+  }
+  const salt = process.env.GITHUB_ENCRYPTION_SALT;
+  if (!salt) {
+    throw new Error("GITHUB_ENCRYPTION_SALT environment variable is required");
+  }
+  return crypto.scryptSync(key, salt, 32);
 }
 
 export function encrypt(text: string): string {

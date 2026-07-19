@@ -371,7 +371,7 @@ router.post("/webhook", async (req: Request, res: Response) => {
       return res.status(200).json({ message: "no connected rooms" });
     }
 
-    const rawBody = (req as any).rawBody || JSON.stringify(req.body);
+    const rawBody = (req as any).rawBody;
 
     for (const room of rooms) {
       const sig = crypto

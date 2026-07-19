@@ -100,9 +100,13 @@ router.delete("/:fileId", authenticateToken, async (req: AuthRequest, res: Respo
     }
 
     const fs = await import("fs");
-    const filePath = path.join(__dirname, "../..", file.fileUrl);
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
+    const resolvedPath = path.resolve(path.join(__dirname, "../..", file.fileUrl));
+    const uploadsDir = path.resolve(path.join(__dirname, "../../uploads"));
+    if (!resolvedPath.startsWith(uploadsDir)) {
+      return res.status(400).json({ error: "Invalid file path" });
+    }
+    if (fs.existsSync(resolvedPath)) {
+      fs.unlinkSync(resolvedPath);
     }
 
     await prisma.file.delete({ where: { id: req.params.fileId as string } });

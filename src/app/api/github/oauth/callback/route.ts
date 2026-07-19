@@ -5,11 +5,17 @@ export async function GET(request: NextRequest) {
   const state = request.nextUrl.searchParams.get("state");
   const backendUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api").replace("/api", "");
 
+  if (!code || !state) {
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+    return NextResponse.redirect(`${frontendUrl}/settings?github=error&message=missing_params`);
+  }
+
   const res = await fetch(
-    `${backendUrl}/api/github/oauth/callback?code=${code}&state=${state}`,
+    `${backendUrl}/api/github/oauth/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`,
     { redirect: "manual" }
   );
 
-  const location = res.headers.get("location") || "http://localhost:3000/settings";
+  const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+  const location = res.headers.get("location") || `${frontendUrl}/settings`;
   return NextResponse.redirect(location);
 }
