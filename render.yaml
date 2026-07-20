@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: collabroom-backend
+    env: node
+    region: oregon
+    rootDir: backend
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: FRONTEND_URL
+        value: "https://collab-room-fho3.vercel.app"
+      - key: BACKEND_URL
+        value: "https://collabroom-backend.onrender.com"
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: GITHUB_CLIENT_ID
+        sync: false
+      - key: GITHUB_CLIENT_SECRET
+        sync: false
+      - key: GITHUB_ENCRYPTION_KEY
+        sync: false
+      - key: GITHUB_ENCRYPTION_SALT
+        sync: false
+      - key: GITHUB_WEBHOOK_SECRET
+        sync: false
