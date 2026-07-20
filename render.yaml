@@ -12,7 +12,7 @@ services:
       - key: FRONTEND_URL
         value: "https://collab-room-fho3.vercel.app"
       - key: BACKEND_URL
-        value: "https://collabroom-backend.onrender.com"
+        value: "https://collab-room-main.onrender.com"
       - key: DATABASE_URL
         sync: false
       - key: JWT_SECRET
