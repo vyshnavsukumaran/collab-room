@@ -43,7 +43,7 @@ router.get("/oauth/authorize", authenticateToken, (req: AuthRequest, res: Respon
   const state = Buffer.from(JSON.stringify({ userId: req.userId!, ts: Date.now() })).toString("base64");
   const params = new URLSearchParams({
     client_id: CLIENT_ID,
-    redirect_uri: `${FRONTEND_URL}/api/github/oauth/callback`,
+    redirect_uri: `${BACKEND_URL}/api/github/oauth/callback`,
     scope: "repo",
     state,
   });
