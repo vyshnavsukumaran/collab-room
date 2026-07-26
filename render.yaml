@@ -5,7 +5,7 @@ services:
     region: oregon
     rootDir: backend
     buildCommand: npm install && npm run build
-    startCommand: npm start
+    startCommand: npx prisma db push && npm start
     envVars:
       - key: NODE_ENV
         value: production

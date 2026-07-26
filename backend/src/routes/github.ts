@@ -380,7 +380,9 @@ router.post("/webhook", async (req: Request, res: Response) => {
         .digest("hex");
       const expectedSig = `sha256=${sig}`;
 
-      if (crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSig))) {
+      const sigBuf = Buffer.from(signature);
+      const expBuf = Buffer.from(expectedSig);
+      if (sigBuf.length === expBuf.length && crypto.timingSafeEqual(sigBuf, expBuf)) {
         const pusher = body.pusher?.name || "Someone";
         const ref = body.ref?.replace("refs/heads/", "") || "unknown";
         const commits = body.commits || [];
