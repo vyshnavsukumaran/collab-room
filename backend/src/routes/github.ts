@@ -10,7 +10,7 @@ const GITHUB_API = "https://api.github.com";
 const CLIENT_ID = process.env.GITHUB_CLIENT_ID || "";
 const CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET || "";
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
-const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:4000";
+const BACKEND_URL = (process.env.BACKEND_URL || "http://localhost:4000").replace(/\/+$/, "");
 
 interface GitHubTokenResponse {
   access_token?: string;
