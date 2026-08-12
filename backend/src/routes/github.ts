@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import crypto from "crypto";
 import { prisma } from "../index";
-import { authenticateToken, AuthRequest } from "../middleware/auth";
+import { authenticateToken, AuthRequest, RawBodyRequest } from "../middleware/auth";
 import { encrypt, decrypt } from "../services/encryption";
 
 const router = Router();
@@ -12,7 +12,63 @@ const CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET || "";
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
 const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:4000";
 
-async function githubFetch(url: string, token: string, options: RequestInit = {}): Promise<any> {
+interface GitHubTokenResponse {
+  access_token?: string;
+  error?: string;
+}
+
+interface GitHubUserData {
+  id: number;
+  login: string;
+  avatar_url: string;
+}
+
+interface GitHubRepoData {
+  id: number;
+  name: string;
+  full_name: string;
+  description: string | null;
+  private: boolean;
+  html_url: string;
+  default_branch: string;
+  owner: { login: string };
+}
+
+interface GitHubContentItem {
+  name: string;
+  path: string;
+  type: "file" | "dir";
+  size: number;
+  sha: string;
+  download_url: string | null;
+}
+
+interface GitHubFileData extends GitHubContentItem {
+  content: string;
+  html_url: string;
+}
+
+interface GitHubCommitData {
+  content: { sha: string; path: string };
+  commit: { html_url: string };
+}
+
+interface GitHubWebhookData {
+  id: number;
+}
+
+interface GithubWebhookBody {
+  repository?: { full_name?: string };
+  pusher?: { name?: string };
+  ref?: string;
+  commits?: { id?: string; message?: string }[];
+}
+
+async function githubFetch<T>(
+  url: string,
+  token: string,
+  options: RequestInit = {}
+): Promise<T> {
   const res = await fetch(url, {
     ...options,
     headers: {
@@ -24,12 +80,14 @@ async function githubFetch(url: string, token: string, options: RequestInit = {}
   });
 
   if (!res.ok) {
-    const errBody: any = await res.json().catch(() => ({ message: res.statusText }));
+    const errBody = (await res.json().catch(() => ({ message: res.statusText }))) as {
+      message?: string;
+    };
     throw new Error(errBody.message || `GitHub API error: ${res.status}`);
   }
 
-  if (res.status === 204) return null;
-  return res.json();
+  if (res.status === 204) return null as T;
+  return res.json() as Promise<T>;
 }
 
 async function getAccessToken(userId: string): Promise<string> {
@@ -79,12 +137,12 @@ router.get("/oauth/callback", async (req: AuthRequest, res: Response) => {
       }),
     });
 
-    const tokenData: any = await tokenRes.json();
+    const tokenData = (await tokenRes.json()) as GitHubTokenResponse;
     if (!tokenData.access_token) {
       return res.redirect(`${FRONTEND_URL}/settings?github=error&message=token_exchange_failed`);
     }
 
-    const userData: any = await githubFetch(`${GITHUB_API}/user`, tokenData.access_token);
+    const userData = await githubFetch<GitHubUserData>(`${GITHUB_API}/user`, tokenData.access_token);
 
     await prisma.gitHubAccount.upsert({
       where: { userId: stateData.userId },
@@ -137,9 +195,12 @@ router.delete("/disconnect", authenticateToken, async (req: AuthRequest, res: Re
 router.get("/repos", authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const token = await getAccessToken(req.userId!);
-    const repos: any[] = await githubFetch(`${GITHUB_API}/user/repos?per_page=100&sort=updated`, token);
+    const repos = await githubFetch<GitHubRepoData[]>(
+      `${GITHUB_API}/user/repos?per_page=100&sort=updated`,
+      token
+    );
     res.json(
-      repos.map((r: any) => ({
+      repos.map((r) => ({
         id: r.id,
         name: r.name,
         fullName: r.full_name,
@@ -150,8 +211,8 @@ router.get("/repos", authenticateToken, async (req: AuthRequest, res: Response) 
         owner: r.owner.login,
       }))
     );
-  } catch (error: any) {
-    res.status(500).json({ error: error.message || "Failed to fetch repos" });
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : "Failed to fetch repos" });
   }
 });
 
@@ -162,14 +223,14 @@ router.get("/repos/:owner/:repo/contents", authenticateToken, async (req: AuthRe
     const owner = req.params.owner as string;
     const repo = req.params.repo as string;
     const path = (req.query.path as string) || "";
-    const data: any = await githubFetch(
+    const data = await githubFetch<GitHubContentItem | GitHubContentItem[]>(
       `${GITHUB_API}/repos/${owner}/${repo}/contents/${path}`,
       token
     );
 
     const items = Array.isArray(data) ? data : [data];
     res.json(
-      items.map((item: any) => ({
+      items.map((item) => ({
         name: item.name,
         path: item.path,
         type: item.type,
@@ -178,8 +239,8 @@ router.get("/repos/:owner/:repo/contents", authenticateToken, async (req: AuthRe
         downloadUrl: item.download_url,
       }))
     );
-  } catch (error: any) {
-    res.status(500).json({ error: error.message || "Failed to fetch contents" });
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : "Failed to fetch contents" });
   }
 });
 
@@ -194,7 +255,7 @@ router.get("/repos/:owner/:repo/file", authenticateToken, async (req: AuthReques
       return res.status(400).json({ error: "path query parameter required" });
     }
 
-    const data: any = await githubFetch(
+    const data = await githubFetch<GitHubFileData>(
       `${GITHUB_API}/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}`,
       token
     );
@@ -208,8 +269,8 @@ router.get("/repos/:owner/:repo/file", authenticateToken, async (req: AuthReques
       content,
       htmlUrl: data.html_url,
     });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message || "Failed to fetch file" });
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : "Failed to fetch file" });
   }
 });
 
@@ -225,13 +286,13 @@ router.put("/repos/:owner/:repo/contents", authenticateToken, async (req: AuthRe
       return res.status(400).json({ error: "path, message, and content are required" });
     }
 
-    const putBody: any = {
+    const putBody: Record<string, unknown> = {
       message,
       content: Buffer.from(content, "utf8").toString("base64"),
     };
     if (sha) putBody.sha = sha;
 
-    const data: any = await githubFetch(
+    const data = await githubFetch<GitHubCommitData>(
       `${GITHUB_API}/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}`,
       token,
       { method: "PUT", body: JSON.stringify(putBody) }
@@ -244,7 +305,7 @@ router.put("/repos/:owner/:repo/contents", authenticateToken, async (req: AuthRe
     };
 
     const fullName = `${owner}/${repo}`;
-    const rooms: any[] = await prisma.room.findMany({
+    const rooms = await prisma.room.findMany({
       where: { githubOwner: owner, githubRepo: repo },
       include: {
         members: {
@@ -278,12 +339,16 @@ router.put("/repos/:owner/:repo/contents", authenticateToken, async (req: AuthRe
     }
 
     res.json({ success: true, ...commitInfo });
-  } catch (error: any) {
-    const isConflict = error.message?.includes("409") || error.message?.includes("sha");
+  } catch (error) {
+    const isConflict =
+      error instanceof Error &&
+      (error.message.includes("409") || error.message.includes("sha"));
     res.status(isConflict ? 409 : 500).json({
       error: isConflict
         ? "File has been modified since last fetch. Please reload and try again."
-        : error.message || "Failed to commit file",
+        : error instanceof Error
+          ? error.message
+          : "Failed to commit file",
     });
   }
 });
@@ -303,7 +368,7 @@ router.post("/repos/:owner/:repo/setup-webhook", authenticateToken, async (req: 
     const secret = crypto.randomBytes(20).toString("hex");
     const webhookUrl = `${BACKEND_URL}/api/github/webhook`;
 
-    const data: any = await githubFetch(
+    const data = await githubFetch<GitHubWebhookData>(
       `${GITHUB_API}/repos/${owner}/${repo}/hooks`,
       token,
       {
@@ -330,8 +395,8 @@ router.post("/repos/:owner/:repo/setup-webhook", authenticateToken, async (req: 
     });
 
     res.json({ webhookId: data.id, message: "Webhook created" });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message || "Failed to create webhook" });
+  } catch (error) {
+    res.status(500).json({ error: error instanceof Error ? error.message : "Failed to create webhook" });
   }
 });
 
@@ -345,14 +410,19 @@ router.post("/webhook", async (req: Request, res: Response) => {
       return res.status(200).json({ message: "ignored" });
     }
 
-    const body: any = req.body;
+    const body = req.body as GithubWebhookBody;
     const fullName = body.repository?.full_name;
     if (!fullName) {
       return res.status(200).json({ message: "no repo" });
     }
 
+    const rawBody = (req as RawBodyRequest).rawBody;
+    if (!rawBody) {
+      return res.status(200).json({ message: "no body" });
+    }
+
     const [owner, repo] = fullName.split("/");
-    const rooms: any[] = await prisma.room.findMany({
+    const rooms = await prisma.room.findMany({
       where: {
         githubOwner: owner,
         githubRepo: repo,
@@ -371,9 +441,8 @@ router.post("/webhook", async (req: Request, res: Response) => {
       return res.status(200).json({ message: "no connected rooms" });
     }
 
-    const rawBody = (req as any).rawBody;
-
     for (const room of rooms) {
+      if (!room.githubWebhookSecret) continue;
       const sig = crypto
         .createHmac("sha256", room.githubWebhookSecret)
         .update(rawBody)

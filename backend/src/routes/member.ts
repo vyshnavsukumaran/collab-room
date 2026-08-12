@@ -31,7 +31,7 @@ router.post("/join", authenticateToken, async (req: AuthRequest, res: Response) 
     });
 
     res.status(201).json(member);
-  } catch (error) {
+  } catch {
     res.status(500).json({ error: "Failed to join room" });
   }
 });
@@ -60,7 +60,7 @@ router.patch("/:memberId/approve", authenticateToken, async (req: AuthRequest, r
     });
 
     res.json(updated);
-  } catch (error) {
+  } catch {
     res.status(500).json({ error: "Failed to approve member" });
   }
 });
@@ -84,7 +84,7 @@ router.delete("/:memberId", authenticateToken, async (req: AuthRequest, res: Res
 
     await prisma.roomMember.delete({ where: { id: req.params.memberId as string } });
     res.json({ message: "Member removed" });
-  } catch (error) {
+  } catch {
     res.status(500).json({ error: "Failed to remove member" });
   }
 });
@@ -114,7 +114,7 @@ router.patch("/:memberId/role", authenticateToken, async (req: AuthRequest, res:
     });
 
     res.json(updated);
-  } catch (error) {
+  } catch {
     res.status(500).json({ error: "Failed to change role" });
   }
 });

@@ -18,7 +18,7 @@ router.get("/:roomId", authenticateToken, async (req: AuthRequest, res: Response
     });
 
     res.json(messages);
-  } catch (error) {
+  } catch {
     res.status(500).json({ error: "Failed to fetch messages" });
   }
 });
@@ -41,7 +41,7 @@ router.post("/:roomId", authenticateToken, async (req: AuthRequest, res: Respons
     });
 
     res.status(201).json(msg);
-  } catch (error) {
+  } catch {
     res.status(500).json({ error: "Failed to send message" });
   }
 });

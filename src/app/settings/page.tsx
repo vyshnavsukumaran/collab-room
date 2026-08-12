@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, LogOut, GitBranch, Link2, Link2Off, Check } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";

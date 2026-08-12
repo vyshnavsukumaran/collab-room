@@ -1,6 +1,16 @@
 import { Server, Socket } from "socket.io";
 import jwt from "jsonwebtoken";
 
+interface AuthenticatedSocket extends Socket {
+  userId?: string;
+}
+
+interface ChatMessageData {
+  roomId: string;
+  message: string;
+  user: { id: string; name: string };
+}
+
 export function setupSocketHandlers(io: Server) {
   io.use((socket, next) => {
     const token = socket.handshake.auth?.token;
@@ -13,7 +23,7 @@ export function setupSocketHandlers(io: Server) {
     }
     try {
       const decoded = jwt.verify(token, jwtSecret) as { userId: string };
-      (socket as any).userId = decoded.userId;
+      (socket as AuthenticatedSocket).userId = decoded.userId;
       next();
     } catch {
       next(new Error("Invalid or expired token"));
@@ -21,7 +31,7 @@ export function setupSocketHandlers(io: Server) {
   });
 
   io.on("connection", (socket: Socket) => {
-    const userId = (socket as any).userId;
+    const userId = (socket as AuthenticatedSocket).userId;
     console.log(`User connected: ${socket.id} (userId: ${userId})`);
 
     socket.on("join-room", (roomId: string) => {
@@ -36,7 +46,7 @@ export function setupSocketHandlers(io: Server) {
       console.log(`Socket ${socket.id} left room ${roomId}`);
     });
 
-    socket.on("chat:message", (data: { roomId: string; message: string; user: { id: string; name: string } }) => {
+    socket.on("chat:message", (data: ChatMessageData) => {
       if (!data || typeof data !== "object" || !data.roomId || !data.message) return;
       if (data.user?.id !== userId) return;
       io.to(data.roomId).emit("chat:message", {
@@ -46,7 +56,7 @@ export function setupSocketHandlers(io: Server) {
       });
     });
 
-    socket.on("file:uploaded", (data: { roomId: string; file: any }) => {
+    socket.on("file:uploaded", (data: { roomId: string; file: unknown }) => {
       if (!data || typeof data !== "object" || !data.roomId) return;
       io.to(data.roomId).emit("file:uploaded", data.file);
     });
@@ -56,7 +66,7 @@ export function setupSocketHandlers(io: Server) {
       io.to(data.roomId).emit("file:deleted", data.fileId);
     });
 
-    socket.on("room:activity", (data: { roomId: string; activity: any }) => {
+    socket.on("room:activity", (data: { roomId: string; activity: unknown }) => {
       if (!data || typeof data !== "object" || !data.roomId) return;
       io.to(data.roomId).emit("room:activity", data.activity);
     });

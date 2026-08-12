@@ -17,30 +17,49 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(() => {
+    if (typeof window === "undefined") return null;
+    const saved = localStorage.getItem("user");
+    if (!saved) return null;
+    try {
+      return JSON.parse(saved);
+    } catch {
+      return null;
+    }
+  });
+  const [token, setToken] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    return localStorage.getItem("token");
+  });
+  const [isLoading, setIsLoading] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return !!localStorage.getItem("token");
+  });
   const router = useRouter();
 
   useEffect(() => {
-    const savedToken = localStorage.getItem("token");
-    const savedUser = localStorage.getItem("user");
-    if (savedToken && savedUser) {
-      setToken(savedToken);
-      setUser(JSON.parse(savedUser));
-      api.get<{ user: User }>("/auth/me").then((data) => {
+    if (!token) return;
+    let cancelled = false;
+    api.get<{ user: User }>("/auth/me")
+      .then((data) => {
+        if (cancelled) return;
         setUser(data.user);
         localStorage.setItem("user", JSON.stringify(data.user));
-      }).catch(() => {
+      })
+      .catch(() => {
+        if (cancelled) return;
         localStorage.removeItem("token");
         localStorage.removeItem("user");
         setToken(null);
         setUser(null);
-      }).finally(() => setIsLoading(false));
-    } else {
-      setIsLoading(false);
-    }
-  }, []);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
 
   const login = async (email: string, password: string) => {
     const data = await api.post<{ token: string; user: User }>("/auth/login", { email, password });

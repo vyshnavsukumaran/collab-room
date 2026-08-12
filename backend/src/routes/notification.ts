@@ -13,20 +13,20 @@ router.get("/", authenticateToken, async (req: AuthRequest, res: Response) => {
     });
 
     res.json(notifications);
-  } catch (error) {
+  } catch {
     res.status(500).json({ error: "Failed to fetch notifications" });
   }
 });
 
 router.patch("/:id/read", authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
-    const notification = await prisma.notification.updateMany({
+    await prisma.notification.updateMany({
       where: { id: req.params.id as string, userId: req.userId! },
       data: { isRead: true },
     });
 
     res.json({ message: "Notification marked as read" });
-  } catch (error) {
+  } catch {
     res.status(500).json({ error: "Failed to update notification" });
   }
 });
@@ -39,7 +39,7 @@ router.patch("/read-all", authenticateToken, async (req: AuthRequest, res: Respo
     });
 
     res.json({ message: "All notifications marked as read" });
-  } catch (error) {
+  } catch {
     res.status(500).json({ error: "Failed to update notifications" });
   }
 });

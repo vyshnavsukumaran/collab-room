@@ -67,7 +67,7 @@ router.post(
       });
 
       res.status(201).json(fileRecord);
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to upload file" });
     }
   }
@@ -87,7 +87,7 @@ router.get("/:roomId", authenticateToken, async (req: AuthRequest, res: Response
     });
 
     res.json(files);
-  } catch (error) {
+  } catch {
     res.status(500).json({ error: "Failed to fetch files" });
   }
 });
@@ -111,7 +111,7 @@ router.delete("/:fileId", authenticateToken, async (req: AuthRequest, res: Respo
 
     await prisma.file.delete({ where: { id: req.params.fileId as string } });
     res.json({ message: "File deleted" });
-  } catch (error) {
+  } catch {
     res.status(500).json({ error: "Failed to delete file" });
   }
 });

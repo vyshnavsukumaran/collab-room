@@ -1,5 +1,4 @@
 import { Router, Response } from "express";
-import { v4 as uuidv4 } from "uuid";
 import { prisma } from "../index";
 import { authenticateToken, AuthRequest } from "../middleware/auth";
 
@@ -38,7 +37,7 @@ router.post("/", authenticateToken, async (req: AuthRequest, res: Response) => {
     });
 
     res.status(201).json(room);
-  } catch (error) {
+  } catch {
     res.status(500).json({ error: "Failed to create room" });
   }
 });
@@ -58,7 +57,7 @@ router.get("/", authenticateToken, async (req: AuthRequest, res: Response) => {
     });
 
     res.json(rooms);
-  } catch (error) {
+  } catch {
     res.status(500).json({ error: "Failed to fetch rooms" });
   }
 });
@@ -80,7 +79,7 @@ router.get("/:roomId", authenticateToken, async (req: AuthRequest, res: Response
     }
 
     res.json(room);
-  } catch (error) {
+  } catch {
     res.status(500).json({ error: "Failed to fetch room" });
   }
 });
@@ -100,7 +99,7 @@ router.patch("/:roomId", authenticateToken, async (req: AuthRequest, res: Respon
       return res.status(403).json({ error: "Only admins can modify room settings" });
     }
 
-    const data: any = {};
+    const data: { githubOwner?: string | null; githubRepo?: string | null; githubBranch?: string | null } = {};
     if (githubOwner !== undefined) data.githubOwner = githubOwner;
     if (githubRepo !== undefined) data.githubRepo = githubRepo;
     if (githubBranch !== undefined) data.githubBranch = githubBranch;
@@ -111,7 +110,7 @@ router.patch("/:roomId", authenticateToken, async (req: AuthRequest, res: Respon
     });
 
     res.json(updated);
-  } catch (error) {
+  } catch {
     res.status(500).json({ error: "Failed to update room" });
   }
 });
@@ -128,7 +127,7 @@ router.delete("/:roomId", authenticateToken, async (req: AuthRequest, res: Respo
 
     await prisma.room.delete({ where: { id: room.id } });
     res.json({ message: "Room deleted" });
-  } catch (error) {
+  } catch {
     res.status(500).json({ error: "Failed to delete room" });
   }
 });

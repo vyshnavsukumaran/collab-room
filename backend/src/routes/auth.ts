@@ -32,7 +32,7 @@ router.post("/register", async (req: Request, res: Response) => {
       token,
       user: { id: user.id, name: user.name, email: user.email },
     });
-  } catch (error) {
+  } catch {
     res.status(500).json({ error: "Registration failed" });
   }
 });
@@ -63,7 +63,7 @@ router.post("/login", async (req: Request, res: Response) => {
       token,
       user: { id: user.id, name: user.name, email: user.email },
     });
-  } catch (error) {
+  } catch {
     res.status(500).json({ error: "Login failed" });
   }
 });
@@ -88,7 +88,7 @@ router.get("/me", authenticateToken, async (req: AuthRequest, res: Response) => 
 router.patch("/profile", authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const { name, email } = req.body;
-    const data: any = {};
+    const data: { name?: string; email?: string } = {};
     if (name) data.name = name;
     if (email) data.email = email;
 

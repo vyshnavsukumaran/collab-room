@@ -8,7 +8,10 @@ const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") || "http
 export function useSocket(roomId: string | null, onMessage?: (data: { user: { id: string; name: string }; message: string; timestamp: string }) => void) {
   const socketRef = useRef<Socket | null>(null);
   const onMessageRef = useRef(onMessage);
-  onMessageRef.current = onMessage;
+
+  useEffect(() => {
+    onMessageRef.current = onMessage;
+  }, [onMessage]);
 
   const sendMessage = useCallback((data: { roomId: string; message: string; user: { id: string; name: string } }) => {
     if (socketRef.current?.connected) {

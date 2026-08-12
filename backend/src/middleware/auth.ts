@@ -5,6 +5,10 @@ export interface AuthRequest extends Request {
   userId?: string;
 }
 
+export interface RawBodyRequest extends Request {
+  rawBody?: string;
+}
+
 export function authenticateToken(req: AuthRequest, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
   const token = authHeader?.split(" ")[1];

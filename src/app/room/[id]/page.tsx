@@ -77,7 +77,6 @@ export default function RoomPage() {
   const [sendingMessage, setSendingMessage] = useState(false);
 
   // GitHub state
-  const [gitHubConnected, setGitHubConnected] = useState(false);
   const [repos, setRepos] = useState<GitHubRepo[]>([]);
   const [loadingRepos, setLoadingRepos] = useState(false);
   const [selectedRepo, setSelectedRepo] = useState<GitHubRepo | null>(null);
@@ -118,7 +117,6 @@ export default function RoomPage() {
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
     Promise.all([
       api.get<Room>(`/rooms/${roomId}`),
       api.get<Message[]>(`/chat/${roomId}`),
@@ -146,26 +144,28 @@ export default function RoomPage() {
 
   // Load repos when entering Files tab if repo is connected
   useEffect(() => {
-    if (!isRepoConnected || !room) return;
+    const owner = room?.githubOwner;
+    const repo = room?.githubRepo;
+    const branch = room?.githubBranch;
+    if (!owner || !repo) return;
     let cancelled = false;
     api.get<GitHubStatus>("/github/status").then((s) => {
       if (cancelled) return;
-      setGitHubConnected(s.connected);
-      if (s.connected && room.githubOwner && room.githubRepo) {
+      if (s.connected) {
         setSelectedRepo({
           id: 0,
-          name: room.githubRepo,
-          fullName: `${room.githubOwner}/${room.githubRepo}`,
+          name: repo,
+          fullName: `${owner}/${repo}`,
           description: null,
           private: false,
-          htmlUrl: `https://github.com/${room.githubOwner}/${room.githubRepo}`,
-          defaultBranch: room.githubBranch || "main",
-          owner: room.githubOwner,
+          htmlUrl: `https://github.com/${owner}/${repo}`,
+          defaultBranch: branch || "main",
+          owner,
         });
       }
     }).catch(() => {});
     return () => { cancelled = true; };
-  }, [room?.githubOwner, room?.githubRepo, isRepoConnected]);
+  }, [room?.githubOwner, room?.githubRepo, room?.githubBranch]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -296,7 +296,7 @@ export default function RoomPage() {
     setCommitting(true);
     setConflictError("");
     try {
-      const result = await api.put<{ success: boolean; commitSha: string; file: string }>(
+      await api.put<{ success: boolean; commitSha: string; file: string }>(
         `/github/repos/${selectedRepo.owner}/${selectedRepo.name}/contents`,
         {
           path: selectedFile.path,

@@ -6,6 +6,7 @@ import { Server } from "socket.io";
 import { PrismaClient } from "@prisma/client";
 
 import authRoutes from "./routes/auth";
+import { RawBodyRequest } from "./middleware/auth";
 import roomRoutes from "./routes/room";
 import memberRoutes from "./routes/member";
 import fileRoutes from "./routes/file";
@@ -42,7 +43,7 @@ app.use(cors(corsOptions));
 app.use(
   express.json({
     verify: (req, _res, buf) => {
-      (req as any).rawBody = buf.toString();
+      (req as RawBodyRequest).rawBody = buf.toString();
     },
   })
 );
