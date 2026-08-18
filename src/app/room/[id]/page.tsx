@@ -20,7 +20,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { useSocket } from "@/hooks/use-socket";
 import { toast } from "sonner";
-import type { Room, RoomMember, Message, GitHubContent, GitHubFile, GitHubRepo, GitHubStatus, Notification } from "@/lib/types";
+import type { Room, RoomMember, Message, GitHubContent, GitHubFile, GitHubRepo, Notification } from "@/lib/types";
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
 
@@ -142,29 +142,24 @@ export default function RoomPage() {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Load repos when entering Files tab if repo is connected
+  // Load the room's connected repo for all members
   useEffect(() => {
     const owner = room?.githubOwner;
     const repo = room?.githubRepo;
     const branch = room?.githubBranch;
     if (!owner || !repo) return;
-    let cancelled = false;
-    api.get<GitHubStatus>("/github/status").then((s) => {
-      if (cancelled) return;
-      if (s.connected) {
-        setSelectedRepo({
-          id: 0,
-          name: repo,
-          fullName: `${owner}/${repo}`,
-          description: null,
-          private: false,
-          htmlUrl: `https://github.com/${owner}/${repo}`,
-          defaultBranch: branch || "main",
-          owner,
-        });
-      }
-    }).catch(() => {});
-    return () => { cancelled = true; };
+    setSelectedRepo({
+      id: 0,
+      name: repo,
+      fullName: `${owner}/${repo}`,
+      description: null,
+      private: false,
+      htmlUrl: `https://github.com/${owner}/${repo}`,
+      defaultBranch: branch || "main",
+      owner,
+    });
+    loadRepoContents(owner, repo, "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [room?.githubOwner, room?.githubRepo, room?.githubBranch]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -655,12 +650,12 @@ export default function RoomPage() {
                         <CardContent className="flex flex-col items-center justify-center py-12 text-center">
                           <GitBranch className="size-10 text-muted-foreground mb-3" />
                           <p className="text-sm text-muted-foreground">No GitHub repo connected</p>
-                          {canUpload && (
+                          {isAdmin && (
                             <p className="text-xs text-muted-foreground mt-1">
                               Connect a repository to start browsing and editing code
                             </p>
                           )}
-                          {canUpload && (
+                          {isAdmin && (
                             <Button
                               className="mt-4"
                               size="sm"

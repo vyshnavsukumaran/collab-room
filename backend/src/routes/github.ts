@@ -97,6 +97,27 @@ async function getAccessToken(userId: string): Promise<string> {
   return decrypt(account.accessTokenEncrypted);
 }
 
+// Members of a room inherit the repo access of the user who connected the repo,
+// so they can browse/edit it without connecting their own GitHub account.
+async function getRepoAccessToken(userId: string, owner: string, repo: string): Promise<string> {
+  const room = await prisma.room.findFirst({
+    where: {
+      githubOwner: owner,
+      githubRepo: repo,
+      members: { some: { userId, status: "approved" } },
+    },
+  });
+  if (room) {
+    const connectorId = room.githubConnectedBy || room.createdBy;
+    try {
+      return await getAccessToken(connectorId);
+    } catch {
+      // connector disconnected their GitHub account; try the requester's own
+    }
+  }
+  return getAccessToken(userId);
+}
+
 // GET /api/github/oauth/authorize — return OAuth authorize URL (call with auth header from frontend)
 router.get("/oauth/authorize", authenticateToken, (req: AuthRequest, res: Response) => {
   const jwtSecret = process.env.JWT_SECRET;
@@ -226,9 +247,9 @@ router.get("/repos", authenticateToken, async (req: AuthRequest, res: Response) 
 // GET /api/github/repos/:owner/:repo/contents — get repo contents (root or path)
 router.get("/repos/:owner/:repo/contents", authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
-    const token = await getAccessToken(req.userId!);
     const owner = req.params.owner as string;
     const repo = req.params.repo as string;
+    const token = await getRepoAccessToken(req.userId!, owner, repo);
     const path = (req.query.path as string) || "";
     const encodedPath = path.split("/").map(encodeURIComponent).join("/");
     const data = await githubFetch<GitHubContentItem | GitHubContentItem[]>(
@@ -255,9 +276,9 @@ router.get("/repos/:owner/:repo/contents", authenticateToken, async (req: AuthRe
 // GET /api/github/repos/:owner/:repo/file — fetch single file content + sha
 router.get("/repos/:owner/:repo/file", authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
-    const token = await getAccessToken(req.userId!);
     const owner = req.params.owner as string;
     const repo = req.params.repo as string;
+    const token = await getRepoAccessToken(req.userId!, owner, repo);
     const path = req.query.path as string;
     if (!path) {
       return res.status(400).json({ error: "path query parameter required" });
@@ -285,9 +306,9 @@ router.get("/repos/:owner/:repo/file", authenticateToken, async (req: AuthReques
 // PUT /api/github/repos/:owner/:repo/contents — commit/update a file
 router.put("/repos/:owner/:repo/contents", authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
-    const token = await getAccessToken(req.userId!);
     const owner = req.params.owner as string;
     const repo = req.params.repo as string;
+    const token = await getRepoAccessToken(req.userId!, owner, repo);
     const { path, message, content, sha } = req.body;
 
     if (!path || !message || !content) {

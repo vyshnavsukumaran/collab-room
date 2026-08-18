@@ -15,6 +15,7 @@ export interface Room {
   githubOwner: string | null;
   githubRepo: string | null;
   githubBranch: string | null;
+  githubConnectedBy: string | null;
   createdAt: string;
   members: RoomMember[];
   _count?: { files: number; messages: number };

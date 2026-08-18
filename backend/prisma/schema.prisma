@@ -35,6 +35,7 @@ model Room {
   githubOwner String?
   githubRepo  String?
   githubBranch String?
+  githubConnectedBy String?
   githubWebhookId Int?
   githubWebhookSecret String?
   createdAt   DateTime @default(now())

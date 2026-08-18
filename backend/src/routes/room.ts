@@ -115,10 +115,18 @@ router.patch("/:roomId", authenticateToken, async (req: AuthRequest, res: Respon
       return res.status(403).json({ error: "Only admins can modify room settings" });
     }
 
-    const data: { githubOwner?: string | null; githubRepo?: string | null; githubBranch?: string | null } = {};
+    const data: {
+      githubOwner?: string | null;
+      githubRepo?: string | null;
+      githubBranch?: string | null;
+      githubConnectedBy?: string | null;
+    } = {};
     if (githubOwner !== undefined) data.githubOwner = githubOwner;
     if (githubRepo !== undefined) data.githubRepo = githubRepo;
     if (githubBranch !== undefined) data.githubBranch = githubBranch;
+    if (githubOwner !== undefined || githubRepo !== undefined) {
+      data.githubConnectedBy = githubOwner || githubRepo ? req.userId! : null;
+    }
 
     const updated = await prisma.room.update({
       where: { id: room.id },
