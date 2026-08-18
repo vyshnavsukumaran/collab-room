@@ -568,7 +568,7 @@ export default function RoomPage() {
                       >
                         {selectedRepo?.name || "root"}
                       </button>
-                      {currentDirPath.split("/").map((part, idx, arr) => (
+                      {(currentDirPath ? currentDirPath.split("/") : []).map((part, idx, arr) => (
                         <span key={idx} className="flex items-center gap-1">
                           <ChevronRight className="size-3 text-muted-foreground" />
                           <button

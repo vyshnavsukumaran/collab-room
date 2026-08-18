@@ -40,9 +40,13 @@ async function request<T>(
   clearTimeout(timeoutId);
 
   if (res.status === 401 && typeof window !== "undefined") {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    window.location.href = "/sign-in";
+    const isAuthEndpoint =
+      endpoint.startsWith("/auth/login") || endpoint.startsWith("/auth/register");
+    if (token && !isAuthEndpoint) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      window.location.href = "/sign-in";
+    }
   }
 
   if (!res.ok) {

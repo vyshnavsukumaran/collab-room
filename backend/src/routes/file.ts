@@ -1,6 +1,7 @@
 import { Router, Response } from "express";
 import multer from "multer";
 import path from "path";
+import fs from "fs";
 import { prisma } from "../index";
 import { authenticateToken, AuthRequest } from "../middleware/auth";
 
@@ -8,7 +9,8 @@ const storage = multer.diskStorage({
   destination: path.join(__dirname, "../../uploads"),
   filename: (_req, file, cb) => {
     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, uniqueSuffix + "-" + file.originalname);
+    const safeName = path.basename(file.originalname).replace(/[^\w.\- ]/g, "_");
+    cb(null, uniqueSuffix + "-" + safeName);
   },
 });
 
@@ -32,8 +34,13 @@ router.post(
         return res.status(400).json({ error: "No file uploaded" });
       }
 
+      const cleanupUploadedFile = () => {
+        fs.unlink(path.join(__dirname, "../../uploads", file.filename), () => {});
+      };
+
       const room = await prisma.room.findUnique({ where: { roomId } });
       if (!room) {
+        cleanupUploadedFile();
         return res.status(404).json({ error: "Room not found" });
       }
 
@@ -41,6 +48,7 @@ router.post(
         where: { roomId_userId: { roomId: room.id, userId: req.userId! } },
       });
       if (!member || member.status !== "approved") {
+        cleanupUploadedFile();
         return res.status(403).json({ error: "Not a member of this room" });
       }
 
@@ -99,10 +107,16 @@ router.delete("/:fileId", authenticateToken, async (req: AuthRequest, res: Respo
       return res.status(404).json({ error: "File not found" });
     }
 
-    const fs = await import("fs");
+    const member = await prisma.roomMember.findUnique({
+      where: { roomId_userId: { roomId: file.roomId, userId: req.userId! } },
+    });
+    if (!member || member.status !== "approved") {
+      return res.status(403).json({ error: "Not a member of this room" });
+    }
+
     const resolvedPath = path.resolve(path.join(__dirname, "../..", file.fileUrl));
     const uploadsDir = path.resolve(path.join(__dirname, "../../uploads"));
-    if (!resolvedPath.startsWith(uploadsDir)) {
+    if (!resolvedPath.startsWith(uploadsDir + path.sep)) {
       return res.status(400).json({ error: "Invalid file path" });
     }
     if (fs.existsSync(resolvedPath)) {

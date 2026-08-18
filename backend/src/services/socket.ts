@@ -1,5 +1,6 @@
 import { Server, Socket } from "socket.io";
 import jwt from "jsonwebtoken";
+import { prisma } from "../index";
 
 interface AuthenticatedSocket extends Socket {
   userId?: string;
@@ -46,11 +47,16 @@ export function setupSocketHandlers(io: Server) {
       console.log(`Socket ${socket.id} left room ${roomId}`);
     });
 
-    socket.on("chat:message", (data: ChatMessageData) => {
-      if (!data || typeof data !== "object" || !data.roomId || !data.message) return;
-      if (data.user?.id !== userId) return;
+    socket.on("chat:message", async (data: ChatMessageData) => {
+      if (!data || typeof data !== "object" || !data.roomId) return;
+      if (typeof data.message !== "string" || !data.message.trim()) return;
+      const sender = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, name: true },
+      });
+      if (!sender) return;
       io.to(data.roomId).emit("chat:message", {
-        user: data.user,
+        user: sender,
         message: data.message.slice(0, 5000),
         timestamp: new Date().toISOString(),
       });

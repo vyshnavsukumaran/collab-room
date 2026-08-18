@@ -15,15 +15,18 @@ function generateRoomId(): string {
 router.post("/", authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const { roomId: providedRoomId, name, projectType, description, maxMembers } = req.body;
+    if (typeof name !== "string" || !name.trim()) {
+      return res.status(400).json({ error: "Room name is required" });
+    }
     const roomId = providedRoomId || generateRoomId();
 
     const room = await prisma.room.create({
       data: {
         roomId,
-        name,
+        name: name.trim(),
         projectType,
         description,
-        maxMembers,
+        maxMembers: typeof maxMembers === "number" ? maxMembers : undefined,
         createdBy: req.userId!,
         members: {
           create: {
@@ -37,7 +40,15 @@ router.post("/", authenticateToken, async (req: AuthRequest, res: Response) => {
     });
 
     res.status(201).json(room);
-  } catch {
+  } catch (error: unknown) {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      (error as { code: string }).code === "P2002"
+    ) {
+      return res.status(409).json({ error: "Room ID already exists" });
+    }
     res.status(500).json({ error: "Failed to create room" });
   }
 });
@@ -75,6 +86,11 @@ router.get("/:roomId", authenticateToken, async (req: AuthRequest, res: Response
     });
 
     if (!room) {
+      return res.status(404).json({ error: "Room not found" });
+    }
+
+    const isMember = room.members.some((m) => m.userId === req.userId);
+    if (!isMember) {
       return res.status(404).json({ error: "Room not found" });
     }
 
@@ -125,7 +141,13 @@ router.delete("/:roomId", authenticateToken, async (req: AuthRequest, res: Respo
       return res.status(403).json({ error: "Only the creator can delete the room" });
     }
 
-    await prisma.room.delete({ where: { id: room.id } });
+    await prisma.$transaction([
+      prisma.notification.deleteMany({ where: { roomId: room.id } }),
+      prisma.message.deleteMany({ where: { roomId: room.id } }),
+      prisma.file.deleteMany({ where: { roomId: room.id } }),
+      prisma.roomMember.deleteMany({ where: { roomId: room.id } }),
+      prisma.room.delete({ where: { id: room.id } }),
+    ]);
     res.json({ message: "Room deleted" });
   } catch {
     res.status(500).json({ error: "Failed to delete room" });

@@ -1,5 +1,6 @@
 import { Router, Request, Response } from "express";
 import crypto from "crypto";
+import jwt from "jsonwebtoken";
 import { prisma } from "../index";
 import { authenticateToken, AuthRequest, RawBodyRequest } from "../middleware/auth";
 import { encrypt, decrypt } from "../services/encryption";
@@ -98,7 +99,11 @@ async function getAccessToken(userId: string): Promise<string> {
 
 // GET /api/github/oauth/authorize — return OAuth authorize URL (call with auth header from frontend)
 router.get("/oauth/authorize", authenticateToken, (req: AuthRequest, res: Response) => {
-  const state = Buffer.from(JSON.stringify({ userId: req.userId!, ts: Date.now() })).toString("base64");
+  const jwtSecret = process.env.JWT_SECRET;
+  if (!jwtSecret) {
+    return res.status(500).json({ error: "JWT_SECRET not configured on server" });
+  }
+  const state = jwt.sign({ userId: req.userId! }, jwtSecret, { expiresIn: "10m" });
   const params = new URLSearchParams({
     client_id: CLIENT_ID,
     redirect_uri: `${BACKEND_URL}/api/github/oauth/callback`,
@@ -119,7 +124,9 @@ router.get("/oauth/callback", async (req: AuthRequest, res: Response) => {
 
     let stateData: { userId: string };
     try {
-      stateData = JSON.parse(Buffer.from(state as string, "base64").toString());
+      const jwtSecret = process.env.JWT_SECRET;
+      if (!jwtSecret) throw new Error("JWT_SECRET not configured");
+      stateData = jwt.verify(state as string, jwtSecret) as { userId: string };
     } catch {
       return res.redirect(`${FRONTEND_URL}/settings?github=error&message=invalid_state`);
     }
@@ -161,7 +168,7 @@ router.get("/oauth/callback", async (req: AuthRequest, res: Response) => {
       },
     });
 
-    res.redirect(`${FRONTEND_URL}/settings?github=success&username=${userData.login}`);
+    res.redirect(`${FRONTEND_URL}/settings?github=success&username=${encodeURIComponent(userData.login)}`);
   } catch {
     res.redirect(`${FRONTEND_URL}/settings?github=error&message=callback_failed`);
   }
@@ -223,8 +230,9 @@ router.get("/repos/:owner/:repo/contents", authenticateToken, async (req: AuthRe
     const owner = req.params.owner as string;
     const repo = req.params.repo as string;
     const path = (req.query.path as string) || "";
+    const encodedPath = path.split("/").map(encodeURIComponent).join("/");
     const data = await githubFetch<GitHubContentItem | GitHubContentItem[]>(
-      `${GITHUB_API}/repos/${owner}/${repo}/contents/${path}`,
+      `${GITHUB_API}/repos/${owner}/${repo}/contents/${encodedPath}`,
       token
     );
 

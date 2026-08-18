@@ -20,6 +20,15 @@ router.post("/join", authenticateToken, async (req: AuthRequest, res: Response) 
       return res.status(400).json({ error: "Already a member or request pending" });
     }
 
+    if (room.maxMembers) {
+      const approvedCount = await prisma.roomMember.count({
+        where: { roomId: room.id, status: "approved" },
+      });
+      if (approvedCount >= room.maxMembers) {
+        return res.status(400).json({ error: "Room is full" });
+      }
+    }
+
     const member = await prisma.roomMember.create({
       data: {
         roomId: room.id,
@@ -92,6 +101,9 @@ router.delete("/:memberId", authenticateToken, async (req: AuthRequest, res: Res
 router.patch("/:memberId/role", authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const { role } = req.body;
+    if (role !== "admin" && role !== "member") {
+      return res.status(400).json({ error: "Role must be 'admin' or 'member'" });
+    }
     const member = await prisma.roomMember.findUnique({
       where: { id: req.params.memberId as string },
       include: { room: true },
