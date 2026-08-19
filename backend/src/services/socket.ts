@@ -12,6 +12,20 @@ interface ChatMessageData {
   user: { id: string; name: string };
 }
 
+async function findRoomByDisplayId(roomId: string) {
+  if (typeof roomId !== "string" || !roomId) return null;
+  return prisma.room.findUnique({ where: { roomId } });
+}
+
+async function getMembership(roomId: string, userId?: string) {
+  if (!userId) return null;
+  const room = await findRoomByDisplayId(roomId);
+  if (!room) return null;
+  return prisma.roomMember.findUnique({
+    where: { roomId_userId: { roomId: room.id, userId } },
+  });
+}
+
 export function setupSocketHandlers(io: Server) {
   io.use((socket, next) => {
     const token = socket.handshake.auth?.token;
@@ -35,8 +49,9 @@ export function setupSocketHandlers(io: Server) {
     const userId = (socket as AuthenticatedSocket).userId;
     console.log(`User connected: ${socket.id} (userId: ${userId})`);
 
-    socket.on("join-room", (roomId: string) => {
-      if (typeof roomId !== "string" || !roomId) return;
+    socket.on("join-room", async (roomId: string) => {
+      const membership = await getMembership(roomId, userId);
+      if (!membership) return;
       socket.join(roomId);
       console.log(`Socket ${socket.id} joined room ${roomId}`);
     });
@@ -50,6 +65,8 @@ export function setupSocketHandlers(io: Server) {
     socket.on("chat:message", async (data: ChatMessageData) => {
       if (!data || typeof data !== "object" || !data.roomId) return;
       if (typeof data.message !== "string" || !data.message.trim()) return;
+      const membership = await getMembership(data.roomId, userId);
+      if (!membership || membership.status !== "approved") return;
       const sender = await prisma.user.findUnique({
         where: { id: userId },
         select: { id: true, name: true },
@@ -62,18 +79,24 @@ export function setupSocketHandlers(io: Server) {
       });
     });
 
-    socket.on("file:uploaded", (data: { roomId: string; file: unknown }) => {
+    socket.on("file:uploaded", async (data: { roomId: string; file: unknown }) => {
       if (!data || typeof data !== "object" || !data.roomId) return;
+      const membership = await getMembership(data.roomId, userId);
+      if (!membership || membership.status !== "approved") return;
       io.to(data.roomId).emit("file:uploaded", data.file);
     });
 
-    socket.on("file:deleted", (data: { roomId: string; fileId: string }) => {
+    socket.on("file:deleted", async (data: { roomId: string; fileId: string }) => {
       if (!data || typeof data !== "object" || !data.roomId) return;
+      const membership = await getMembership(data.roomId, userId);
+      if (!membership || membership.status !== "approved") return;
       io.to(data.roomId).emit("file:deleted", data.fileId);
     });
 
-    socket.on("room:activity", (data: { roomId: string; activity: unknown }) => {
+    socket.on("room:activity", async (data: { roomId: string; activity: unknown }) => {
       if (!data || typeof data !== "object" || !data.roomId) return;
+      const membership = await getMembership(data.roomId, userId);
+      if (!membership || membership.status !== "approved") return;
       io.to(data.roomId).emit("room:activity", data.activity);
     });
 

@@ -13,7 +13,8 @@ router.get("/", authenticateToken, async (req: AuthRequest, res: Response) => {
     });
 
     res.json(notifications);
-  } catch {
+  } catch (error) {
+    console.error(`[error] ${req.method} ${req.originalUrl}:`, error);
     res.status(500).json({ error: "Failed to fetch notifications" });
   }
 });
@@ -26,7 +27,8 @@ router.patch("/:id/read", authenticateToken, async (req: AuthRequest, res: Respo
     });
 
     res.json({ message: "Notification marked as read" });
-  } catch {
+  } catch (error) {
+    console.error(`[error] ${req.method} ${req.originalUrl}:`, error);
     res.status(500).json({ error: "Failed to update notification" });
   }
 });
@@ -39,7 +41,8 @@ router.patch("/read-all", authenticateToken, async (req: AuthRequest, res: Respo
     });
 
     res.json({ message: "All notifications marked as read" });
-  } catch {
+  } catch (error) {
+    console.error(`[error] ${req.method} ${req.originalUrl}:`, error);
     res.status(500).json({ error: "Failed to update notifications" });
   }
 });

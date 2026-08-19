@@ -148,7 +148,8 @@ router.get("/oauth/callback", async (req: AuthRequest, res: Response) => {
       const jwtSecret = process.env.JWT_SECRET;
       if (!jwtSecret) throw new Error("JWT_SECRET not configured");
       stateData = jwt.verify(state as string, jwtSecret) as { userId: string };
-    } catch {
+    } catch (error) {
+    console.error(`[error] ${req.method} ${req.originalUrl}:`, error);
       return res.redirect(`${FRONTEND_URL}/settings?github=error&message=invalid_state`);
     }
 
@@ -190,7 +191,8 @@ router.get("/oauth/callback", async (req: AuthRequest, res: Response) => {
     });
 
     res.redirect(`${FRONTEND_URL}/settings?github=success&username=${encodeURIComponent(userData.login)}`);
-  } catch {
+  } catch (error) {
+    console.error(`[error] ${req.method} ${req.originalUrl}:`, error);
     res.redirect(`${FRONTEND_URL}/settings?github=error&message=callback_failed`);
   }
 });
@@ -204,7 +206,8 @@ router.get("/status", authenticateToken, async (req: AuthRequest, res: Response)
       username: account?.username || null,
       avatarUrl: account?.avatarUrl || null,
     });
-  } catch {
+  } catch (error) {
+    console.error(`[error] ${req.method} ${req.originalUrl}:`, error);
     res.status(500).json({ error: "Failed to check GitHub status" });
   }
 });
@@ -214,7 +217,8 @@ router.delete("/disconnect", authenticateToken, async (req: AuthRequest, res: Re
   try {
     await prisma.gitHubAccount.deleteMany({ where: { userId: req.userId! } });
     res.json({ message: "GitHub account disconnected" });
-  } catch {
+  } catch (error) {
+    console.error(`[error] ${req.method} ${req.originalUrl}:`, error);
     res.status(500).json({ error: "Failed to disconnect GitHub" });
   }
 });
@@ -240,6 +244,7 @@ router.get("/repos", authenticateToken, async (req: AuthRequest, res: Response) 
       }))
     );
   } catch (error) {
+    console.error(`[error] ${req.method} ${req.originalUrl}:`, error);
     res.status(500).json({ error: error instanceof Error ? error.message : "Failed to fetch repos" });
   }
 });
@@ -269,6 +274,7 @@ router.get("/repos/:owner/:repo/contents", authenticateToken, async (req: AuthRe
       }))
     );
   } catch (error) {
+    console.error(`[error] ${req.method} ${req.originalUrl}:`, error);
     res.status(500).json({ error: error instanceof Error ? error.message : "Failed to fetch contents" });
   }
 });
@@ -299,6 +305,7 @@ router.get("/repos/:owner/:repo/file", authenticateToken, async (req: AuthReques
       htmlUrl: data.html_url,
     });
   } catch (error) {
+    console.error(`[error] ${req.method} ${req.originalUrl}:`, error);
     res.status(500).json({ error: error instanceof Error ? error.message : "Failed to fetch file" });
   }
 });
@@ -425,6 +432,7 @@ router.post("/repos/:owner/:repo/setup-webhook", authenticateToken, async (req: 
 
     res.json({ webhookId: data.id, message: "Webhook created" });
   } catch (error) {
+    console.error(`[error] ${req.method} ${req.originalUrl}:`, error);
     res.status(500).json({ error: error instanceof Error ? error.message : "Failed to create webhook" });
   }
 });
@@ -510,7 +518,8 @@ router.post("/webhook", async (req: Request, res: Response) => {
     }
 
     res.status(200).json({ message: "ok" });
-  } catch {
+  } catch (error) {
+    console.error(`[error] ${req.method} ${req.originalUrl}:`, error);
     res.status(200).json({ message: "error processing webhook" });
   }
 });

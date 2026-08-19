@@ -42,7 +42,8 @@ router.post("/register", async (req: Request, res: Response) => {
       token,
       user: { id: user.id, name: user.name, email: user.email },
     });
-  } catch {
+  } catch (error) {
+    console.error(`[error] ${req.method} ${req.originalUrl}:`, error);
     res.status(500).json({ error: "Registration failed" });
   }
 });
@@ -77,7 +78,8 @@ router.post("/login", async (req: Request, res: Response) => {
       token,
       user: { id: user.id, name: user.name, email: user.email },
     });
-  } catch {
+  } catch (error) {
+    console.error(`[error] ${req.method} ${req.originalUrl}:`, error);
     res.status(500).json({ error: "Login failed" });
   }
 });
@@ -93,7 +95,8 @@ router.get("/me", authenticateToken, async (req: AuthRequest, res: Response) => 
       return res.status(404).json({ error: "User not found" });
     }
     res.json({ user });
-  } catch {
+  } catch (error) {
+    console.error(`[error] ${req.method} ${req.originalUrl}:`, error);
     res.status(500).json({ error: "Failed to fetch user" });
   }
 });
@@ -164,7 +167,8 @@ router.patch("/password", authenticateToken, async (req: AuthRequest, res: Respo
     });
 
     res.json({ message: "Password updated" });
-  } catch {
+  } catch (error) {
+    console.error(`[error] ${req.method} ${req.originalUrl}:`, error);
     res.status(500).json({ error: "Failed to update password" });
   }
 });

@@ -1,4 +1,6 @@
 import { Router, Response } from "express";
+import fs from "fs";
+import path from "path";
 import { prisma } from "../index";
 import { authenticateToken, AuthRequest } from "../middleware/auth";
 
@@ -68,7 +70,8 @@ router.get("/", authenticateToken, async (req: AuthRequest, res: Response) => {
     });
 
     res.json(rooms);
-  } catch {
+  } catch (error) {
+    console.error(`[error] ${req.method} ${req.originalUrl}:`, error);
     res.status(500).json({ error: "Failed to fetch rooms" });
   }
 });
@@ -95,7 +98,8 @@ router.get("/:roomId", authenticateToken, async (req: AuthRequest, res: Response
     }
 
     res.json(room);
-  } catch {
+  } catch (error) {
+    console.error(`[error] ${req.method} ${req.originalUrl}:`, error);
     res.status(500).json({ error: "Failed to fetch room" });
   }
 });
@@ -134,7 +138,8 @@ router.patch("/:roomId", authenticateToken, async (req: AuthRequest, res: Respon
     });
 
     res.json(updated);
-  } catch {
+  } catch (error) {
+    console.error(`[error] ${req.method} ${req.originalUrl}:`, error);
     res.status(500).json({ error: "Failed to update room" });
   }
 });
@@ -149,6 +154,11 @@ router.delete("/:roomId", authenticateToken, async (req: AuthRequest, res: Respo
       return res.status(403).json({ error: "Only the creator can delete the room" });
     }
 
+    const files = await prisma.file.findMany({
+      where: { roomId: room.id },
+      select: { fileUrl: true },
+    });
+
     await prisma.$transaction([
       prisma.notification.deleteMany({ where: { roomId: room.id } }),
       prisma.message.deleteMany({ where: { roomId: room.id } }),
@@ -156,8 +166,18 @@ router.delete("/:roomId", authenticateToken, async (req: AuthRequest, res: Respo
       prisma.roomMember.deleteMany({ where: { roomId: room.id } }),
       prisma.room.delete({ where: { id: room.id } }),
     ]);
+
+    const uploadsDir = path.resolve(path.join(__dirname, "../../uploads"));
+    for (const file of files) {
+      const resolvedPath = path.resolve(path.join(__dirname, "../..", file.fileUrl));
+      if (resolvedPath.startsWith(uploadsDir + path.sep) && fs.existsSync(resolvedPath)) {
+        fs.unlinkSync(resolvedPath);
+      }
+    }
+
     res.json({ message: "Room deleted" });
-  } catch {
+  } catch (error) {
+    console.error(`[error] ${req.method} ${req.originalUrl}:`, error);
     res.status(500).json({ error: "Failed to delete room" });
   }
 });

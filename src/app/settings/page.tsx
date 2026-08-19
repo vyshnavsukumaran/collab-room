@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { useSearchParams } from "next/navigation";
 
 function SettingsContent() {
-  const { user, logout } = useAuth();
+  const { user, logout, refreshUser } = useAuth();
   const searchParams = useSearchParams();
   const [name, setName] = useState(user?.name || "");
   const [email, setEmail] = useState(user?.email || "");
@@ -104,6 +104,7 @@ function SettingsContent() {
               setSavingProfile(true);
               try {
                 await api.patch("/auth/profile", { name, email });
+                await refreshUser();
                 toast.success("Profile updated");
               } catch (err: unknown) {
                 const msg = err instanceof Error ? err.message : "Failed to update profile";

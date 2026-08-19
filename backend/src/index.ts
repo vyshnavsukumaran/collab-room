@@ -57,8 +57,18 @@ app.use("/api/chat", chatRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/github", githubRoutes);
 
-app.get("/api/health", (_req, res) => {
-  res.json({ status: "ok", timestamp: new Date().toISOString() });
+app.get("/api/health", async (_req, res) => {
+  let db = "ok";
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+  } catch (error) {
+    db = error instanceof Error ? error.message : "unknown database error";
+  }
+  res.json({
+    status: db === "ok" ? "ok" : "degraded",
+    db,
+    timestamp: new Date().toISOString(),
+  });
 });
 
 setupSocketHandlers(io);
@@ -66,4 +76,13 @@ setupSocketHandlers(io);
 const port = process.env.PORT || 4000;
 httpServer.listen(port, () => {
   console.log(`CollabRoom backend running on port ${port}`);
+  if (!process.env.DATABASE_URL) {
+    console.error("DATABASE_URL is not set — database queries will fail");
+  }
+  prisma
+    .$connect()
+    .then(() => console.log("Database connected"))
+    .catch((error) => {
+      console.error("Database connection failed:", error);
+    });
 });
